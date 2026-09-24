@@ -23,26 +23,31 @@ function Footer(){return <footer><div className="container foot"><button classNa
 
 function Field({label,children,wide}){return <label className={wide?"field wide":"field"}><span>{label}</span>{children}</label>}
 function Quote(){
-const[freight,setFreight]=useState("weight"),[weight,setWeight]=useState(100),[pickup,setPickup]=useState(""),[drop,setDrop]=useState(""),[rows,setRows]=useState([{rate:0,qty:1}]),[urgent,setUrgent]=useState(false),[cust,setCust]=useState(false),[distance,setDistance]=useState(null),[status,setStatus]=useState(""),[busy,setBusy]=useState(false),[quote,setQuote]=useState(null),[client,setClient]=useState({name:"",email:"",phone:"",notes:""});
+const[freight,setFreight]=useState("weight"),[weight,setWeight]=useState(100),[pickup,setPickup]=useState(""),[drop,setDrop]=useState(""),[rows,setRows]=useState([{rate:0,qty:1}]),[urgent,setUrgent]=useState(false),[cust,setCust]=useState(false),[distance,setDistance]=useState(null),[manualKm,setManualKm]=useState(""),[status,setStatus]=useState(""),[busy,setBusy]=useState(false),[quote,setQuote]=useState(null),[client,setClient]=useState({name:"",email:"",phone:"",notes:""});
 async function geo(a){let r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=au&q="+encodeURIComponent(a));if(!r.ok)throw Error();let d=await r.json();if(!d[0])throw Error();return[+d[0].lat,+d[0].lon]}
 async function calc(){
 if(!pickup.trim()||!drop.trim()){setStatus("Enter both pickup and delivery addresses.");return}
-setBusy(true);setStatus("Calculating your route…");
+setBusy(true);setQuote(null);setStatus("Calculating your route…");
 try{
-let a=await geo(pickup),b=await geo(drop),r=await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=false`),d=await r.json();
-if(!d.routes?.[0])throw Error();
-let km=d.routes[0].distance/1000;setDistance(km);
-let palletTotal=rows.reduce((s,x)=>s+x.rate*x.qty,0),extras=urgent?100:0,total=cust?palletTotal:Math.max(90,80+km*10+palletTotal+extras);
-setQuote({total,km,palletTotal,extras});setStatus(`${km.toFixed(1)} km route • estimate ready`);
-}catch(e){setDistance(null);setStatus("We couldn't calculate the route. Check the addresses and try again.");setQuote(null)}
-finally{setBusy(false)}
+let km=Number(manualKm);
+if(!km){
+let a=await geo(pickup),b=await geo(drop),r=await fetch("https://router.project-osrm.org/route/v1/driving/"+a[1]+","+a[0]+";"+b[1]+","+b[0]+"?overview=false");
+if(!r.ok)throw Error();
+let d=await r.json();if(!d.routes?.[0])throw Error();km=d.routes[0].distance/1000;
+}
+setDistance(km);
+let palletTotal=rows.reduce((s,x)=>s+Number(x.rate)*Number(x.qty||0),0),extras=urgent?100:0,total=cust?Math.max(90,palletTotal):Math.max(90,80+km*10+palletTotal+extras);
+setQuote({total,km,palletTotal,extras});setStatus(km.toFixed(1)+" km route • estimate ready");
+}catch(e){
+setDistance(null);setStatus("Route lookup failed. Enter an approximate distance above and calculate again.");setQuote(null)
+}finally{setBusy(false)}
 }
 function summary(){return["LOWKI TRANSPORT — BOOKING REQUEST","",`Customer: ${client.name||"Not provided"}`,`Email: ${client.email||"Not provided"}`,`Phone: ${client.phone||"Not provided"}`,`Pickup: ${pickup||"Not provided"}`,`Delivery: ${drop||"Not provided"}`,`Freight: ${freight==="pallet"?"Pallet freight":"Weight-based freight"}`,`Weight: ${weight} kg`,`Customer Pickup: ${cust?"Yes":"No"}`,`Urgent same-day: ${urgent?"Yes":"No"}`,`Estimated Quote: ${money(quote?.total)}`,"",`Notes: ${client.notes||"None"}`].join("\\n")}
 function send(){if(!client.name||!client.email||!client.phone||!quote){alert("Please complete your details and calculate your quote first.");return}location.href=`mailto:info@lowkitransport.com?subject=${encodeURIComponent("Lowki Transport Booking Request")}&body=${encodeURIComponent(summary())}`}
 return <div className="quotePage"><div className="quoteTop container"><button onClick={()=>go("/")}>← Lowki Transport</button><span>GET A QUOTE</span></div><main className="container quoteMain">
 <div className="quoteIntro"><label>LOWKI TRANSPORT</label><h1>Get your freight estimate.</h1><p>Enter the essentials below. Most quotes take less than a minute.</p></div>
 <div className="quoteGrid"><div className="quoteForm">
-<QSec title="1 · Where is it going?"><div className="formGrid"><Field label="Pickup address" wide><input value={pickup} onChange={e=>setPickup(e.target.value)} placeholder="e.g. Dandenong, VIC"/></Field><Field label="Delivery address" wide><input value={drop} onChange={e=>setDrop(e.target.value)} placeholder="e.g. Melbourne Airport, VIC"/></Field></div></QSec>
+<QSec title="1 · Where is it going?"><div className="formGrid"><Field label="Pickup address" wide><input value={pickup} onChange={e=>setPickup(e.target.value)} placeholder="e.g. Dandenong, VIC"/></Field><Field label="Delivery address" wide><input value={drop} onChange={e=>setDrop(e.target.value)} placeholder="e.g. Melbourne Airport, VIC"/></Field><Field label="Approx. distance (km) — optional" wide><input type="number" min="1" value={manualKm} onChange={e=>setManualKm(e.target.value)} placeholder="Use this if automatic route lookup fails"/></Field></div></QSec>
 <QSec title="2 · What are you moving?"><div className="formGrid"><Field label="Freight type"><select value={freight} onChange={e=>setFreight(e.target.value)}><option value="weight">General freight</option><option value="pallet">Pallet freight</option></select></Field><Field label="Weight (kg)"><input type="number" min="0" value={weight} onChange={e=>setWeight(e.target.value)}/></Field><Field label="Pallets"><select value={rows[0].rate} onChange={e=>setRows([{rate:+e.target.value,qty:rows[0].qty}])}>{pallets.map(([v,n])=><option value={v} key={n}>{n}</option>)}</select></Field>{rows[0].rate>0&&<Field label="Quantity"><input type="number" min="1" value={rows[0].qty} onChange={e=>setRows([{...rows[0],qty:+e.target.value}])}/></Field>}</div></QSec>
 <QSec title="3 · Any extras?"><CheckBox checked={urgent} onChange={setUrgent} title="Urgent same-day" sub="+$100"/><CheckBox checked={cust} onChange={setCust} title="Customer Pickup" sub="Pallet pricing only"/></QSec>
 <button className="calculate" disabled={busy} onClick={calc}>{busy?"Calculating…":"Calculate My Quote"} <ArrowRight/></button>
