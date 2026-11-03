@@ -11,45 +11,6 @@ const createMailto = (quote) => {
   return `mailto:${EMAIL}?subject=${subject}&body=${body}`;
 };
 
-const serviceGroups = [
-  {
-    number: "01",
-    title: "General freight",
-    description: "Everyday commercial freight, palletised goods, parcels and scheduled deliveries.",
-    tags: ["Commercial freight", "Parcels & pallets", "Local delivery"],
-  },
-  {
-    number: "02",
-    title: "Vehicles & marine",
-    description: "Transport coordination for cars, motorcycles, boats and marine equipment through suitable specialist operators.",
-    tags: ["Cars & motorcycles", "Boats", "Specialist carriers"],
-  },
-  {
-    number: "03",
-    title: "Heavy & oversized",
-    description: "Planned movements for machinery, construction equipment and oversized loads, subject to route, permits and carrier capability.",
-    tags: ["Machinery", "Oversized freight", "Route planning"],
-  },
-  {
-    number: "04",
-    title: "Interstate logistics",
-    description: "Freight coordination between Victoria and other Australian states, with clear communication from pickup to delivery.",
-    tags: ["Victoria", "Interstate", "Scheduled freight"],
-  },
-  {
-    number: "05",
-    title: "Business logistics",
-    description: "Flexible transport support for businesses that need a dependable point of contact for their freight requirements.",
-    tags: ["Business deliveries", "Repeat movements", "Freight coordination"],
-  },
-  {
-    number: "06",
-    title: "Specialist movements",
-    description: "A pathway to specialist providers for unusual or complex consignments, subject to feasibility and compliance checks.",
-    tags: ["Project freight", "Specialist operators", "Case-by-case planning"],
-  },
-];
-
 const capabilityGroups = [
   { title: "General freight", items: ["Vans & courier vehicles", "Rigid trucks", "Curtain-siders", "Pantech trucks", "Tray trucks"] },
   { title: "Heavy haulage", items: ["Flatbed trailers", "Drop-deck trailers", "Prime mover combinations", "B-double combinations*"] },
@@ -141,7 +102,6 @@ export default function LowkiSite() {
           </a>
 
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-300 lg:flex">
-            <a className="transition hover:text-red-400" href="#services">Services</a>
             <a className="transition hover:text-red-400" href="#capabilities">Capabilities</a>
             <a className="transition hover:text-red-400" href="#approach">Our approach</a>
             <a className="transition hover:text-red-400" href="#about">About</a>
@@ -160,7 +120,7 @@ export default function LowkiSite() {
               <button onClick={closeMenu} aria-label="Close navigation menu" className="rounded-md px-3 py-1 text-4xl text-slate-300 transition hover:text-red-400">×</button>
             </div>
             <nav className="space-y-1 text-lg font-semibold">
-              {[["Home", "#home"], ["Services", "#services"], ["Capabilities", "#capabilities"], ["Our approach", "#approach"], ["About Lowki", "#about"], ["Request a quote", "#quote"], ["Contact", "#contact"]].map(([label, href]) => (
+              {[["Home", "#home"], ["Capabilities", "#capabilities"], ["Our approach", "#approach"], ["About Lowki", "#about"], ["Request a quote", "#quote"], ["Contact", "#contact"]].map(([label, href]) => (
                 <a key={href} href={href} onClick={closeMenu} className="block border-b border-white/10 py-4 transition hover:translate-x-1 hover:text-red-400">{label}<span className="float-right text-red-500">↗</span></a>
               ))}
             </nav>
@@ -183,7 +143,7 @@ export default function LowkiSite() {
               <p className="mt-7 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">Lowki Transport is a Melbourne-based transport coordination business connecting customers with suitable operators for freight across Victoria and interstate. We help assess the load, route and timing, then discuss options and availability—from general commercial freight to vehicles, boats, machinery and specialist consignments.</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <a href="#quote" className="inline-flex items-center justify-center gap-3 rounded-md bg-red-600 px-6 py-4 font-bold text-white shadow-lg shadow-red-950/40 transition hover:-translate-y-0.5 hover:bg-red-500">Request a transport quote <span>↗</span></a>
-                <a href="#services" className="inline-flex items-center justify-center gap-3 rounded-md border border-white/20 px-6 py-4 font-semibold text-white transition hover:border-red-500 hover:text-red-300">Explore our services <span>↓</span></a>
+                <a href="#capabilities" className="inline-flex items-center justify-center gap-3 rounded-md border border-white/20 px-6 py-4 font-semibold text-white transition hover:border-red-500 hover:text-red-300">View capabilities <span>↓</span></a>
               </div>
               <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-white/10 pt-6">
                 <div><div className="text-sm font-bold text-white">One contact</div><div className="mt-1 text-xs leading-5 text-slate-500">For your freight needs</div></div>
@@ -217,23 +177,6 @@ export default function LowkiSite() {
                 </form>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section id="services" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-24">
-          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-            <div><div className="text-xs font-bold uppercase tracking-[0.24em] text-red-500">What we can help move</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Transport solutions, <span className="text-slate-500">built around the job.</span></h2></div>
-            <p className="max-w-xl text-sm leading-7 text-slate-400">Every load has different requirements. We work to understand the consignment, route, timing and handling needs before discussing the right transport option.</p>
-          </div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {serviceGroups.map((service) => (
-              <article key={service.number} className="group rounded-xl border border-white/10 bg-[#111216] p-6 transition duration-300 hover:-translate-y-1 hover:border-red-500/50 hover:bg-[#15151a] hover:shadow-xl hover:shadow-red-950/10 sm:p-7">
-                <div className="flex items-center justify-between"><span className="text-xs font-bold tracking-[0.2em] text-red-500">{service.number}</span><span className="text-xl text-slate-600 transition group-hover:translate-x-1 group-hover:text-red-400">↗</span></div>
-                <h3 className="mt-6 text-xl font-bold text-white">{service.title}</h3>
-                <p className="mt-3 min-h-[72px] text-sm leading-6 text-slate-400">{service.description}</p>
-                <div className="mt-5 flex flex-wrap gap-2">{service.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] text-slate-400">{tag}</span>)}</div>
-              </article>
-            ))}
           </div>
         </section>
 
@@ -296,7 +239,7 @@ export default function LowkiSite() {
         <section id="contact" className="border-t border-white/10 bg-[#111216]">
           <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
             <div><div className="font-black tracking-[0.16em] text-white">LOWKI <span className="text-red-500">TRANSPORT</span></div><p className="mt-2 text-sm text-slate-500">Melbourne, Victoria · Enquiries for Victoria and interstate movements</p></div>
-            <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-400"><a href="#services" className="hover:text-red-400">Services</a><a href="#capabilities" className="hover:text-red-400">Capabilities</a><a href={`mailto:${EMAIL}`} className="hover:text-red-400">Email</a><a href={`tel:${PHONE}`} className="hover:text-red-400">Call</a></div>
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-400"><a href="#capabilities" className="hover:text-red-400">Capabilities</a><a href={`mailto:${EMAIL}`} className="hover:text-red-400">Email</a><a href={`tel:${PHONE}`} className="hover:text-red-400">Call</a></div>
           </div>
           <div className="border-t border-white/5"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-4 text-xs text-slate-600 sm:px-8 sm:flex-row sm:justify-between"><span>© {new Date().getFullYear()} Lowki Transport. All rights reserved.</span><span>Transport availability and service scope confirmed per enquiry.</span></div></div>
         </section>
