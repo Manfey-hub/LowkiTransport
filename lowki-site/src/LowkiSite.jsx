@@ -6,7 +6,7 @@ const EMAIL = "chrismanth3y@gmail.com";
 const createMailto = (quote) => {
   const subject = encodeURIComponent(`Lowki Transport quote request — ${quote.loadType}`);
   const body = encodeURIComponent(
-    `Quote request for Lowki Transport\\n\\nName: ${quote.name}\\nEmail: ${quote.email}\\nPhone: ${quote.phone}\\nPickup: ${quote.pickup}\\nDelivery: ${quote.delivery}\\nFreight type: ${quote.loadType}\\nDetails: ${quote.details}\\n\\nPlease contact me to discuss availability and pricing.`
+    `Quote request for Lowki Transport\n\nName: ${quote.name}\nEmail: ${quote.email}\nPhone: ${quote.phone}\nPickup: ${quote.pickup}\nDelivery: ${quote.delivery}\nFreight type: ${quote.loadType}\nDetails: ${quote.details}\n\nPlease contact me to discuss availability and pricing.`
   );
   return `mailto:${EMAIL}?subject=${subject}&body=${body}`;
 };
