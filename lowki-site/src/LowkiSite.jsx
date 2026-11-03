@@ -1,7 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const PHONE = "0481967216";
 const EMAIL = "chrismanth3y@gmail.com";
+
+const createMailto = (quote) => {
+  const subject = encodeURIComponent(`Lowki Transport quote request — ${quote.loadType}`);
+  const body = encodeURIComponent(
+    `Quote request for Lowki Transport\\n\\nName: ${quote.name}\\nEmail: ${quote.email}\\nPhone: ${quote.phone}\\nPickup: ${quote.pickup}\\nDelivery: ${quote.delivery}\\nFreight type: ${quote.loadType}\\nDetails: ${quote.details}\\n\\nPlease contact me to discuss availability and pricing.`
+  );
+  return `mailto:${EMAIL}?subject=${subject}&body=${body}`;
+};
 
 const serviceGroups = [
   {
@@ -50,20 +58,67 @@ const capabilityGroups = [
 
 export default function LowkiSite() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [quoteStatus, setQuoteStatus] = useState("idle");
+  const [quoteMailto, setQuoteMailto] = useState("");
+  const menuTriggerRef = useRef(null);
+  const menuPanelRef = useRef(null);
   const [quote, setQuote] = useState({ name: "", email: "", phone: "", pickup: "", delivery: "", loadType: "General freight", details: "" });
 
-  const updateQuote = (event) => setQuote({ ...quote, [event.target.name]: event.target.value });
+  const updateQuote = (event) => setQuote((current) => ({ ...current, [event.target.name]: event.target.value }));
 
-  const submitQuote = (event) => {
+  const submitQuote = async (event) => {
     event.preventDefault();
-    const subject = encodeURIComponent(`Lowki Transport quote request — ${quote.loadType}`);
-    const body = encodeURIComponent(
-      `Quote request for Lowki Transport\n\nName: ${quote.name}\nEmail: ${quote.email}\nPhone: ${quote.phone}\nPickup: ${quote.pickup}\nDelivery: ${quote.delivery}\nFreight type: ${quote.loadType}\nDetails: ${quote.details}\n\nPlease contact me to discuss availability and pricing.`
-    );
-    window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${body}`;
+    setQuoteStatus("sending");
+    setQuoteMailto("");
+    try {
+      const response = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quote),
+      });
+      if (!response.ok) throw new Error("Quote service unavailable");
+      setQuoteStatus("sent");
+    } catch {
+      setQuoteMailto(createMailto(quote));
+      setQuoteStatus("fallback");
+    }
   };
 
   const closeMenu = () => setMenuOpen(false);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const panel = menuPanelRef.current;
+    const focusable = () => panel?.querySelectorAll("a[href], button:not([disabled])") ?? [];
+    focusable()[0]?.focus();
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuOpen(false);
+      }
+      if (event.key === "Tab") {
+        const items = [...focusable()];
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      menuTriggerRef.current?.focus();
+    };
+  }, [menuOpen]);
 
   return (
     <div className="min-h-screen bg-[#08090b] text-slate-100 antialiased selection:bg-red-600 selection:text-white">
@@ -93,13 +148,13 @@ export default function LowkiSite() {
             <a href="#quote" className="rounded-md bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-500">Request a quote <span aria-hidden="true">↗</span></a>
           </nav>
 
-          <button onClick={() => setMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={menuOpen} className="flex h-11 w-11 items-center justify-center rounded-md border border-white/15 text-2xl transition hover:border-red-500 hover:text-red-400 lg:hidden">☰</button>
+          <button ref={menuTriggerRef} onClick={() => setMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={menuOpen} className="flex h-11 w-11 items-center justify-center rounded-md border border-white/15 text-2xl transition hover:border-red-500 hover:text-red-400 lg:hidden">☰</button>
         </div>
       </header>
 
       {menuOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" onClick={closeMenu}>
-          <aside className="ml-auto flex h-full w-[min(88vw,390px)] flex-col border-l border-red-900/60 bg-[#101014] p-6 shadow-2xl shadow-black" onClick={(event) => event.stopPropagation()}>
+          <aside ref={menuPanelRef} role="dialog" aria-modal="true" aria-label="Navigation menu" tabIndex={-1} className="ml-auto flex h-full w-[min(88vw,390px)] flex-col border-l border-red-900/60 bg-[#101014] p-6 shadow-2xl shadow-black" onClick={(event) => event.stopPropagation()}>
             <div className="mb-10 flex items-center justify-between">
               <div className="leading-none"><div className="text-xl font-black tracking-[0.16em]">LOWKI</div><div className="mt-1 text-[10px] font-bold tracking-[0.36em] text-red-500">TRANSPORT</div></div>
               <button onClick={closeMenu} aria-label="Close navigation menu" className="rounded-md px-3 py-1 text-4xl text-slate-300 transition hover:text-red-400">×</button>
@@ -125,7 +180,7 @@ export default function LowkiSite() {
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-red-300"><span className="h-2 w-2 rounded-full bg-red-500" /> Transport. Logistics. Connected.</div>
               <h1 className="max-w-3xl text-5xl font-black leading-[1.02] tracking-tight text-white sm:text-6xl lg:text-7xl">One trusted name.<br /><span className="text-red-500">More ways to move.</span></h1>
-              <p className="mt-7 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">Lowki Transport is a Melbourne-based transport and logistics business building a connected network for reliable freight solutions across Victoria and interstate. From everyday commercial freight to vehicles, boats, machinery and specialist consignments, we help customers find the right transport solution for the job.</p>
+              <p className="mt-7 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">Lowki Transport is a Melbourne-based transport coordination business connecting customers with suitable operators for freight across Victoria and interstate. We help assess the load, route and timing, then discuss options and availability—from general commercial freight to vehicles, boats, machinery and specialist consignments.</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <a href="#quote" className="inline-flex items-center justify-center gap-3 rounded-md bg-red-600 px-6 py-4 font-bold text-white shadow-lg shadow-red-950/40 transition hover:-translate-y-0.5 hover:bg-red-500">Request a transport quote <span>↗</span></a>
                 <a href="#services" className="inline-flex items-center justify-center gap-3 rounded-md border border-white/20 px-6 py-4 font-semibold text-white transition hover:border-red-500 hover:text-red-300">Explore our services <span>↓</span></a>
@@ -146,16 +201,19 @@ export default function LowkiSite() {
                 </div>
                 <form onSubmit={submitQuote} className="mt-7 space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="block text-xs font-semibold text-slate-400">Pickup location<input required name="pickup" value={quote.pickup} onChange={updateQuote} placeholder="Suburb, state or postcode" className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-500" /></label>
-                    <label className="block text-xs font-semibold text-slate-400">Delivery location<input required name="delivery" value={quote.delivery} onChange={updateQuote} placeholder="Suburb, state or postcode" className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-500" /></label>
+                    <label className="block text-xs font-semibold text-slate-400">Name *<input required name="name" value={quote.name} onChange={updateQuote} autoComplete="name" placeholder="Your name" className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-500" /></label>
+                    <label className="block text-xs font-semibold text-slate-400">Email *<input required type="email" name="email" value={quote.email} onChange={updateQuote} autoComplete="email" placeholder="you@example.com" className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-500" /></label>
+                    <label className="block text-xs font-semibold text-slate-400">Pickup location *<input required name="pickup" value={quote.pickup} onChange={updateQuote} placeholder="Suburb, state or postcode" className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-500" /></label>
+                    <label className="block text-xs font-semibold text-slate-400">Delivery location *<input required name="delivery" value={quote.delivery} onChange={updateQuote} placeholder="Suburb, state or postcode" className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-500" /></label>
                   </div>
                   <label className="block text-xs font-semibold text-slate-400">What are you transporting?
                     <select name="loadType" value={quote.loadType} onChange={updateQuote} className="mt-2 w-full rounded-md border border-white/10 bg-[#1b1c22] px-3 py-3 text-sm text-white outline-none focus:border-red-500">
                       {["General freight", "Parcel or small delivery", "Palletised freight", "Vehicle", "Boat or marine equipment", "Machinery or oversized load", "Interstate freight", "Other / specialist request"].map((type) => <option key={type}>{type}</option>)}
                     </select>
                   </label>
-                  <button type="submit" className="flex w-full items-center justify-center gap-3 rounded-md bg-red-600 px-5 py-4 font-bold text-white transition hover:bg-red-500">Continue quote by email <span>↗</span></button>
-                  <p className="text-center text-xs leading-5 text-slate-500">Opens your email app with the enquiry details ready to send. No booking is confirmed until availability and terms are agreed.</p>
+                  <button type="submit" disabled={quoteStatus === "sending"} className="flex w-full items-center justify-center gap-3 rounded-md bg-red-600 px-5 py-4 font-bold text-white transition hover:bg-red-500 disabled:cursor-wait disabled:opacity-70">{quoteStatus === "sending" ? "Sending enquiry…" : "Send quote enquiry"} <span aria-hidden="true">↗</span></button>
+                  <p role="status" aria-live="polite" className="text-center text-xs leading-5 text-slate-400">{quoteStatus === "sending" && "Sending your enquiry…"}{quoteStatus === "sent" && "Thanks — your enquiry has been sent. Lowki will follow up to discuss availability and pricing."}{quoteStatus === "fallback" && <>The online form could not send your enquiry. <a className="font-semibold text-red-400 underline" href={quoteMailto}>Open a prepared email instead</a>.</>}</p>
+                  <p className="text-center text-xs leading-5 text-slate-500">Your enquiry is not a confirmed quote or booking. Availability, pricing and terms are confirmed with you before a movement proceeds.</p>
                 </form>
               </div>
             </div>
@@ -181,7 +239,7 @@ export default function LowkiSite() {
 
         <section id="capabilities" className="border-y border-white/10 bg-[#0d0e12]">
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-24">
-            <div className="max-w-3xl"><div className="text-xs font-bold uppercase tracking-[0.24em] text-red-500">Network & capability</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">The right equipment for the right load.</h2><p className="mt-5 leading-7 text-slate-400">Lowki is building relationships across general freight, heavy haulage and specialised transport. The equipment below represents the types of capability we aim to coordinate through suitable operators; availability depends on the job, route, timing and provider.</p></div>
+            <div className="max-w-3xl"><div className="text-xs font-bold uppercase tracking-[0.24em] text-red-500">Network & capability</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">The right equipment for the right load.</h2><p className="mt-5 leading-7 text-slate-400">Lowki coordinates transport through suitable operators based on each job. The equipment below describes capabilities we may be able to arrange; it does not promise owned equipment or guaranteed availability.</p></div>
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {capabilityGroups.map((group, index) => (
                 <div key={group.title} className="rounded-xl border border-white/10 bg-[#111216] p-6 transition duration-300 hover:border-red-500/40">
@@ -207,8 +265,8 @@ export default function LowkiSite() {
 
         <section id="about" className="border-y border-white/10 bg-[#111216]">
           <div className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-center lg:py-20">
-            <div><div className="text-xs font-bold uppercase tracking-[0.24em] text-red-500">About Lowki</div><h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">Building a bigger vision for Australian transport.</h2><p className="mt-5 max-w-3xl leading-7 text-slate-400">Lowki Transport is a Melbourne-based transport and logistics business with an ambitious goal: to become a trusted name customers think of first when they need something moved. We’re focused on building a reliable network, strong operator relationships and a service experience grounded in professionalism, transparency and performance.</p></div>
-            <div className="rounded-xl border border-red-500/30 bg-black/30 p-6 lg:min-w-[240px]"><div className="text-2xl font-black tracking-tight text-white">LOWKI <span className="text-red-500">TRANSPORT</span></div><div className="mt-2 text-sm font-semibold text-slate-400">Anything. Anywhere. Delivered.</div><div className="mt-5 h-1 w-16 rounded-full bg-red-600" /></div>
+            <div><div className="text-xs font-bold uppercase tracking-[0.24em] text-red-500">About Lowki</div><h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">Building a bigger vision for Australian transport.</h2><p className="mt-5 max-w-3xl leading-7 text-slate-400">Lowki Transport is a Melbourne-based transport coordination business building relationships with independent operators. We help customers discuss suitable transport options; the carrier, scope, availability, responsibilities and terms are confirmed for each movement before a job proceeds.</p></div>
+            <div className="rounded-xl border border-red-500/30 bg-black/30 p-6 lg:min-w-[240px]"><div className="text-2xl font-black tracking-tight text-white">LOWKI <span className="text-red-500">TRANSPORT</span></div><div className="mt-2 text-sm font-semibold text-slate-400">Connected transport. Clear communication.</div><div className="mt-5 h-1 w-16 rounded-full bg-red-600" /></div>
           </div>
         </section>
 
@@ -228,8 +286,9 @@ export default function LowkiSite() {
                 <label className="text-xs font-semibold text-slate-400">Delivery location *<input required name="delivery" value={quote.delivery} onChange={updateQuote} className="mt-2 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-red-500" placeholder="Delivery suburb / postcode" /></label>
                 <label className="text-xs font-semibold text-slate-400 sm:col-span-2">Load details<textarea name="details" value={quote.details} onChange={updateQuote} rows={4} className="mt-2 w-full resize-y rounded-md border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-red-500" placeholder="Dimensions, weight, timing, access or handling requirements…" /></label>
               </div>
-              <button type="submit" className="mt-5 flex w-full items-center justify-center gap-3 rounded-md bg-red-600 px-5 py-4 font-bold text-white transition hover:bg-red-500">Prepare email enquiry <span>↗</span></button>
-              <p className="mt-3 text-xs leading-5 text-slate-500">This opens your email application. Please send the prepared message to submit your enquiry. A quote or booking is not confirmed until Lowki confirms availability and terms.</p>
+              <button type="submit" disabled={quoteStatus === "sending"} className="mt-5 flex w-full items-center justify-center gap-3 rounded-md bg-red-600 px-5 py-4 font-bold text-white transition hover:bg-red-500 disabled:cursor-wait disabled:opacity-70">{quoteStatus === "sending" ? "Sending enquiry…" : "Send quote enquiry"} <span aria-hidden="true">↗</span></button>
+              <p role="status" aria-live="polite" className="mt-3 text-center text-xs leading-5 text-slate-400">{quoteStatus === "sending" && "Sending your enquiry…"}{quoteStatus === "sent" && "Thanks — your enquiry has been sent. Lowki will follow up to discuss availability and pricing."}{quoteStatus === "fallback" && <>The online form could not send your enquiry. <a className="font-semibold text-red-400 underline" href={quoteMailto}>Open a prepared email instead</a>.</>}</p>
+              <p className="mt-3 text-xs leading-5 text-slate-500">Your enquiry is not a confirmed quote or booking. Availability, pricing and terms are confirmed with you before a movement proceeds.</p>
             </form>
           </div>
         </section>
